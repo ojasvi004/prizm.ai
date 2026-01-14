@@ -62,7 +62,7 @@ export default function Features() {
             Architecture
           </p>
 
-          <h2 className="mt-4 text-4xl sm:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-blue-600 to-indigo-900">
+          <h2 className="mt-4 text-4xl sm:text-5xl py-2 font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-blue-600 to-indigo-900">
             A2A Adversarial Reasoning System
           </h2>
 

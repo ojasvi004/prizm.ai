@@ -2,8 +2,16 @@
 
 import React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function Navbar() {
+  const pathname = usePathname();
+
+  // Hide Navbar on chats pages
+  if (pathname?.startsWith("/chats")) {
+    return null;
+  }
+
   return (
     <div className="fixed top-0 left-0 right-0 z-[100] flex justify-center pt-6 px-4">
       <nav className="flex items-center justify-between px-6 py-3 w-full max-w-5xl bg-white/70 backdrop-blur-lg border border-white/40 shadow-xl shadow-blue-900/5 rounded-full ring-1 ring-white/50">
