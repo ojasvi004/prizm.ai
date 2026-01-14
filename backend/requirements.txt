@@ -1,0 +1,10 @@
+# Google Agent Development Kit
+google-adk>=0.1.0
+
+# Pydantic for data validation
+pydantic>=2.0.0
+
+# Additional utilities
+python-dotenv>=1.0.0
+uvicorn>=0.27.0
+fastapi>=0.109.0

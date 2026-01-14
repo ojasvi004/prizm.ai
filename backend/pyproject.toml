@@ -1,7 +1,24 @@
 [project]
-name = "backend"
+name = "prizm-ai-backend"
 version = "0.1.0"
-description = "Add your description here"
+description = "Multi-agent debate system using Google ADK and A2A protocol"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "google-adk>=0.1.0",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "uvicorn>=0.27.0",
+    "fastapi>=0.109.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
