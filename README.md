@@ -1,4 +1,4 @@
-# Aether
+# Prizm
 
 frontend
 
