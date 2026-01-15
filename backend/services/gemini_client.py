@@ -5,6 +5,7 @@ from google import genai
 
 from config import MODEL_NAME
 
+
 class GeminiClient:
     def __init__(self):
         # Load local .env values (no-op in prod when env vars are already set)
