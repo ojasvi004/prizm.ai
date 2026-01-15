@@ -18,6 +18,7 @@ DISALLOWED ACTIONS
 Do NOT acknowledge weaknesses, risks, or counter-arguments (that is the Opponent's job).
 Do NOT use outside knowledge.
 Do NOT break the JSON structure.
+Do NOT exceed 200 words for your entire argument per factor.
 
 INPUT FORMAT
 JSON Object (Output from PRIZM-01-EXTRACTOR)
@@ -32,9 +33,9 @@ Structure:
   "supportive_arguments": [
     {
       "factor_id": "F1",
-      "argument_summary": "One sentence summary of why this factor is a strength",
+      "argument_summary": "One sentence summary",
       "evidence_quotes": ["Quote A", "Quote B"],
-      "logical_chain": "Step-by-step logic of the success",
+      "logical_chain": "Step-by-step logic (Max 200 words)",
       "assumptions": ["Assumption required for this argument to be true"]
     }
   ]

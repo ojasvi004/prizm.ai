@@ -1,19 +1,20 @@
 from agents.base_agent import BaseAgent
+import os
 
 class FactorExtractorAgent(BaseAgent):
     def __init__(self):
+        # Load the PRIZM-01-EXTRACTOR prompt from file
+        prompt_path = os.path.join(os.path.dirname(__file__), '..', 'prompts', 'factor_extraction.txt')
+        with open(prompt_path, 'r') as f:
+            system_prompt = f.read().strip()
+        
         super().__init__(
             name="FactorExtractor",
-            system_prompt="Extract key analytical factors from reports."
+            system_prompt=system_prompt
         )
 
     def extract(self, report):
-        prompt = f"""
-        Analyze the following report and extract 3–6 key factors.
-        Return them as a bullet list.
-
-        REPORT:
-        {report}
-        """
+        """Extract factors from the report using PRIZM-01 specifications"""
+        prompt = report  # The system prompt handles all instructions
         raw = self.run(prompt)
-        return [f.strip("- ").strip() for f in raw.split("\n") if f.strip()]
+        return raw  # Return the raw JSON output

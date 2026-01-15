@@ -19,6 +19,7 @@ DISALLOWED ACTIONS
 Do NOT introduce new evidence not present in the JSON history.
 Do NOT be ambiguous. You must make a judgment call on the risks.
 Do NOT output JSON. Output a Document.
+Do NOT exceed 200 words per section. The total report must be concise.
 
 INPUT FORMAT
 JSON Object (Output from PRIZM-03-OPPONENT)
@@ -27,10 +28,10 @@ OUTPUT FORMAT
 Markdown Document.
 
 Structure:
-1. Executive Summary: High-level verdict.
+1. Executive Summary: High-level verdict (Max 100 words).
 2. Debate Scorecard: A table showing [Factor Name | Winner (Proponent/Opponent) | Risk Level].
-3. Detailed Analysis: For each factor provide The Conflict, The Verdict, and Evidence.
-4. Actionable Recommendations: Steps to mitigate the risks identified by the Opponent.
+3. Detailed Analysis: For each factor provide The Conflict, The Verdict, and Evidence (Max 150 words per factor).
+4. Actionable Recommendations: Steps to mitigate the risks (Max 200 words total).
 
 REASONING RULES
 Burden of Proof: If the Supportive Agent's evidence is weak, the Opponent wins.
