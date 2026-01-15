@@ -4,7 +4,7 @@ import React from "react";
 
 export default function Footer() {
   return (
-    <footer className="relative z-50 overflow-hidden border-t border-blue-100/60 bg-gradient-to-b from-white/40 via-blue-50/40 to-white backdrop-blur-xl">
+     <footer id="footer" className="relative z-50 overflow-hidden border-t border-blue-200/50 bg-gradient-to-b from-white/40 via-blue-50/40 to-white backdrop-blur-xl">
       {/* Subtle background glow */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(59,130,246,0.08),transparent_60%)]" />
 
@@ -87,7 +87,7 @@ export default function Footer() {
 
             <span className="font-semibold text-slate-900">
               Created by{" "}
-              <span className="ml-1 inline-flex items-center rounded bg-blue-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+              <span className="ml-1 inline-flex items-center rounded bg-indigo-400 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
                 N3RDS
               </span>
             </span>
