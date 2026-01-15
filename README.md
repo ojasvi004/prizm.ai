@@ -9,7 +9,7 @@
 ---
 
 <p align="center">
-	<img src="assests/readme3.png" alt="Prizm SS" width="full">
+	<img src="assests/readme2.png" alt="Prizm SS" width="full">
 </p>
 
 <p align="center">
@@ -37,7 +37,7 @@
 ## 💻 Tech Stack
 
 <p align="center">
-	<img src="assests/readme2.png" alt="Prizm Tech Stack" width="full">
+	<img src="assests/readme3.png" alt="Prizm Tech Stack" width="full">
 </p>
 
 <p align="center">
