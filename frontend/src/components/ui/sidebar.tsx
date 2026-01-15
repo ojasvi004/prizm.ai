@@ -88,14 +88,14 @@ export const DesktopSidebar = ({
     <>
       <motion.div
         className={cn(
-          "h-full px-4 py-4 hidden  md:flex md:flex-col bg-neutral-100 dark:bg-neutral-800 w-[300px] shrink-0",
+          "h-full px-4 py-4 hidden md:flex md:flex-col bg-slate-50 dark:bg-slate-900/50 w-[300px] shrink-0",
           className
         )}
         animate={{
-          width: animate ? (open ? "300px" : "60px") : "300px",
+          width: animate ? (open ? "300px" : "80px") : "300px",
         }}
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
+        onMouseEnter={!open ? () => setOpen(true) : undefined}
+        onMouseLeave={open ? () => setOpen(false) : undefined}
         {...props}
       >
         {children}
@@ -167,7 +167,8 @@ export const SidebarLink = ({
     <a
       href={link.href}
       className={cn(
-        "flex items-center justify-start gap-2  group/sidebar py-2",
+        "flex items-center justify-start gap-2 group/sidebar py-2",
+        !open && "justify-center",
         className
       )}
       {...props}

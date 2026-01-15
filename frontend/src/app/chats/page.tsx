@@ -2,23 +2,26 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Sidebar, SidebarBody, SidebarLink, useSidebar } from "../../components/ui/sidebar";
+import { FileUpload } from "../../components/ui/file-upload";
 import { 
-  IconSettings, 
-  IconUserBolt,
-  IconMessage,
-  IconPlus,
-  IconSend,
-  IconRobot,
-  IconUser
+  IconSettings, IconUserBolt, IconMessage, IconPlus, IconSend, 
+  IconUser, IconScale, IconAdjustmentsHorizontal, IconReportSearch, 
+  IconThumbUp, IconThumbDown, IconBrain, IconQuote, IconCheck
 } from "@tabler/icons-react";
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { motion } from "motion/react";
+import Image from 'next/image';
+import { motion, AnimatePresence } from "motion/react";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import sampleData from '../../../sample.json';
 
 // --- Types ---
+type MessageRole = 'user' | 'assistant' | 'supportive' | 'opposing' | 'synthesizer' | 'extractor';
+
 type Message = {
   id: string;
-  role: 'user' | 'assistant';
+  role: MessageRole;
   content: string;
   timestamp: Date;
 };
@@ -30,408 +33,272 @@ type Chat = {
   preview: string;
 };
 
-// --- Mock Data ---
-const MOCK_CHATS: Chat[] = [
-  {
-    id: '1',
-    title: 'Project Aether Brainstorming',
-    date: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-    preview: 'Let\'s discuss the architecture for the new backend module...'
-  },
-  {
-    id: '2',
-    title: 'React Component Patterns',
-    date: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-    preview: 'What are the best practices for compound components in 2024?'
-  },
-  {
-    id: '3',
-    title: 'Database Schema Review',
-    date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3), // 3 days ago
-    preview: 'Checking the foreign key constraints on the user table.'
-  }
-];
+// --- Sub-Component: The Advarsarial Chat Bubble ---
+const AgentMessage = ({ msg }: { msg: Message }) => {
+  // Logic: User and Supportive (Optimist) on the Right. Extractor and Opposing (Skeptic) on the Left.
+  const isRightAligned = msg.role === 'user' || msg.role === 'supportive';
+  const isSynthesizer = msg.role === 'synthesizer';
 
-const MOCK_MESSAGES: Record<string, Message[]> = {
-  '1': [
-    { id: 'm1', role: 'user', content: 'Let\'s discuss the architecture for the new backend module.', timestamp: new Date(Date.now() - 1000 * 60 * 10) },
-    { id: 'm2', role: 'assistant', content: 'Sure, I\'d be happy to help. Are we thinking microservices or a modular monolith?', timestamp: new Date(Date.now() - 1000 * 60 * 9) },
-    { id: 'm3', role: 'user', content: 'Modular monolith for now. Easier to deploy.', timestamp: new Date(Date.now() - 1000 * 60 * 8) },
-  ],
-  '2': [
-    { id: 'm4', role: 'user', content: 'What are the best practices for compound components in 2024?', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24) },
-    { id: 'm5', role: 'assistant', content: 'In 2024, compound components usually leverage the Context API for state sharing and flexible composition. Would you like an example?', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24) },
-  ],
-  '3': [
-      { id: 'm6', role: 'user', content: 'Checking the foreign key constraints on the user table.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 72) },
-  ]
-};
+  const roleStyles: Record<MessageRole, { color: string, icon: any, label: string, border: string, text: string }> = {
+    user: { color: "bg-blue-600", text: "text-white", border: "border-transparent", icon: <IconUser size={18}/>, label: "User" },
+    supportive: { color: "bg-emerald-50 dark:bg-emerald-950/30", text: "text-slate-900 dark:text-slate-100", border: "border-emerald-200 dark:border-emerald-800", icon: <IconThumbUp size={18} className="text-emerald-600"/>, label: "The Optimist" },
+    opposing: { color: "bg-rose-50 dark:bg-rose-950/30", text: "text-slate-900 dark:text-slate-100", border: "border-rose-200 dark:border-rose-800", icon: <IconThumbDown size={18} className="text-rose-600"/>, label: "The Skeptic" },
+    extractor: { color: "bg-amber-50 dark:bg-amber-950/30", text: "text-slate-900 dark:text-slate-100", border: "border-amber-200 dark:border-amber-800", icon: <IconReportSearch size={18} className="text-amber-600"/>, label: "Fact Extractor" },
+    synthesizer: { color: "bg-indigo-50 dark:bg-indigo-950/40", text: "text-slate-900 dark:text-slate-100", border: "border-indigo-200 dark:border-indigo-800", icon: <IconBrain size={18} className="text-indigo-600"/>, label: "Final Synthesis" },
+    assistant: { color: "bg-slate-100 dark:bg-slate-800", text: "text-slate-900 dark:text-slate-100", border: "border-slate-200 dark:border-slate-700", icon: <IconMessage size={18}/>, label: "Assistant" }
+  };
 
-// --- Components ---
+  const style = roleStyles[msg.role];
 
-const Logo = () => {
-  return (
-    <Link
-      href="/"
-      className="font-normal flex space-x-2 items-center text-sm text-black py-1 relative z-20"
-    >
-      <div className="h-5 w-6 bg-black dark:bg-white rounded-br-lg rounded-tr-sm rounded-tl-lg rounded-bl-sm flex-shrink-0" />
-      <motion.span
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="font-medium text-black dark:text-white whitespace-pre"
-      >
-        Prizm AI
-      </motion.span>
-    </Link>
-  );
-};
-
-const LogoIcon = () => {
-  return (
-    <Link
-      href="/"
-      className="font-normal flex space-x-2 items-center text-sm text-black py-1 relative z-20"
-    >
-      <div className="h-5 w-6 bg-black dark:bg-white rounded-br-lg rounded-tr-sm rounded-tl-lg rounded-bl-sm flex-shrink-0" />
-    </Link>
-  );
-};
-
-// Custom Sidebar item that behaves like a button (for chats)
-const ChatMetadataItem = ({
-    chat,
-    isSelected,
-    onClick,
-  }: {
-    chat: Chat;
-    isSelected: boolean;
-    onClick: () => void;
-  }) => {
-    const { open, animate } = useSidebar();
+  if (msg.content.startsWith('### ✅')) {
     return (
-      <button
-        onClick={onClick}
-        className={cn(
-          "flex items-center justify-start gap-2 group/sidebar py-2 w-full text-left transition-all rounded-md px-2",
-          isSelected
-            ? "bg-slate-200 dark:bg-slate-700 font-medium text-slate-900 dark:text-white"
-            : "text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700"
-        )}
-      >
-        <IconMessage className={cn("h-5 w-5 flex-shrink-0", isSelected ? "text-blue-600" : "text-slate-500 dark:text-slate-400")} />
-        <motion.span
-          animate={{
-            display: animate ? (open ? "inline-block" : "none") : "inline-block",
-            opacity: animate ? (open ? 1 : 0) : 1,
-          }}
-          className="text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0 truncate"
-        >
-          {chat.title}
-        </motion.span>
-      </button>
-    );
+      <div className="flex items-center justify-center my-8">
+        <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 shadow-sm">
+          <IconCheck size={18} />
+          <span className="text-sm font-semibold">Analysis Complete</span>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className={cn(
+      "flex w-full mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700",
+      isRightAligned ? "flex-row-reverse" : "flex-row",
+      isSynthesizer && "justify-center"
+    )}>
+      {/* Avatar Sidebar (Hidden for Synthesizer to center it) */}
+      {!isSynthesizer && (
+        <div className={cn("flex flex-col items-center shrink-0", isRightAligned ? "ml-4" : "mr-4")}>
+          <div className={cn("h-10 w-10 rounded-2xl flex items-center justify-center shadow-sm border", style.border, msg.role === 'user' ? style.color : "bg-white dark:bg-slate-900")}>
+            {style.icon}
+          </div>
+          <div className="flex-1 w-px bg-slate-200 dark:bg-slate-800 mt-2" />
+        </div>
+      )}
+
+      {/* Message Bubble */}
+      <div className={cn(
+        "flex flex-col",
+        isRightAligned ? "items-end" : "items-start",
+        isSynthesizer ? "max-w-4xl w-full" : "max-w-[75%]"
+      )}>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5 px-1">
+          {style.label}
+        </span>
+        
+        <div className={cn(
+          "p-6 rounded-[28px] shadow-sm border transition-all",
+          style.color, style.border, style.text,
+          isRightAligned ? "rounded-tr-none" : "rounded-tl-none",
+          isSynthesizer && "rounded-tr-[28px] rounded-tl-[28px] shadow-indigo-500/5 border-2"
+        )}>
+          <div className={cn("prose prose-sm dark:prose-invert max-w-none", msg.role === 'user' && "text-white prose-headings:text-white")}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {msg.content}
+            </ReactMarkdown>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
+// --- Main Page Component ---
 export default function ChatsPage() {
   const [open, setOpen] = useState(false);
-  
-  // Chat Logic State
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [input, setInput] = useState('');
-  const [chats, setChats] = useState<Chat[]>(MOCK_CHATS);
-  
+  const [chats, setChats] = useState<Chat[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load messages when a chat is selected
-  useEffect(() => {
-    if (selectedChatId) {
-      setMessages(MOCK_MESSAGES[selectedChatId] || []);
-    } else {
-      setMessages([]);
-    }
-  }, [selectedChatId]);
-
-  // Auto-scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, selectedChatId]);
 
-  const handleSendMessage = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!input.trim()) return;
+  const handleStartAnalysis = (initialText: string, file?: File) => {
+    const newChatId = Date.now().toString();
+    const newChat: Chat = {
+      id: newChatId,
+      title: initialText.slice(0, 25) || (file ? file.name : "New Analysis"),
+      date: new Date(),
+      preview: "Analysis in progress..."
+    };
 
-    let currentChatId = selectedChatId;
-    if (!currentChatId) {
-        const newChatId = Date.now().toString();
-        const newChat: Chat = {
-            id: newChatId,
-            title: input.slice(0, 30) + (input.length > 30 ? '...' : ''),
-            date: new Date(),
-            preview: input
-        };
-        setChats([newChat, ...chats]);
-        setSelectedChatId(newChatId);
-        currentChatId = newChatId;
-        MOCK_MESSAGES[newChatId] = [];
-    }
-
-    const newUserMessage: Message = {
-      id: Date.now().toString(),
+    const userMsg: Message = {
+      id: 'um-' + Date.now(),
       role: 'user',
-      content: input,
+      content: `${initialText} ${file ? `\n\n> 📎 **File Attached:** ${file.name}` : ''}`,
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, newUserMessage]);
+    setChats([newChat, ...chats]);
+    setMessages(prev => ({ ...prev, [newChatId]: [userMsg] }));
+    setSelectedChatId(newChatId);
+
+    setTimeout(() => simulateDebate(newChatId), 1000);
+  };
+
+  const simulateDebate = (chatId: string) => {
+    let messageQueue: Message[] = [];
     
-    setTimeout(() => {
-      const botResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: `I'm a static bot for now! You said: "${input}"`,
+    sampleData.debates.forEach((debate, idx) => {
+      messageQueue.push({
+        id: `ext-${idx}`,
+        role: 'extractor',
+        content: `### Factor Identification: ${debate.factor.title}\n${debate.factor.description}\n\n> **Source Quote:** "${debate.factor.source_quote}"`,
         timestamp: new Date()
-      };
-      setMessages(prev => [...prev, botResponse]);
-    }, 1000);
+      });
+      messageQueue.push({
+        id: `sup-${idx}`,
+        role: 'supportive',
+        content: `### The Optimist View\n**Summary:** ${debate.supportive.summary}\n\n**Strategic Logic:**\n${debate.supportive.logic}`,
+        timestamp: new Date()
+      });
+      messageQueue.push({
+        id: `opp-${idx}`,
+        role: 'opposing',
+        content: `### The Skeptic View\n**Challenge:** ${debate.opposing.summary}\n\n**Critical Flaws Identifed:**\n${debate.opposing.critiques.map(c => `- **Target:** ${c.target_claim}\n- **Flaw:** ${c.flaw}`).join('\n')}`,
+        timestamp: new Date()
+      });
+      messageQueue.push({
+        id: `syn-${idx}`,
+        role: 'synthesizer',
+        content: `## ⚖️ Deliberation Verdict: ${debate.factor.title}\nAfter weighing the optimistic growth projection against the skeptic's critique of data residency, we conclude: **${debate.opposing.missing_context}**`,
+        timestamp: new Date()
+      });
+    });
 
-    setInput('');
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  const handleNewChat = () => {
-    setSelectedChatId(null);
-    setMessages([]);
-    setInput('');
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i < messageQueue.length) {
+        setMessages(prev => ({
+          ...prev,
+          [chatId]: [...(prev[chatId] || []), messageQueue[i]]
+        }));
+        i++;
+      } else {
+        // Add a final completion message
+        const completionMessage: Message = {
+            id: 'done',
+            role: 'synthesizer',
+            content: '### ✅ Analysis Complete\nThe deliberative process has concluded.',
+            timestamp: new Date()
+        };
+        setMessages(prev => ({
+            ...prev,
+            [chatId]: [...(prev[chatId] || []), completionMessage]
+        }));
+        clearInterval(interval);
+      }
+    }, 2500);
   };
 
   return (
-    <div
-      className={cn(
-        "flex flex-col md:flex-row bg-slate-50 dark:bg-slate-900 w-full flex-1 mx-auto border border-slate-200 dark:border-slate-700 overflow-hidden",
-        "h-screen"
-      )}
-    >
+    <div className="flex flex-col md:flex-row bg-slate-50 dark:bg-slate-950 w-full h-screen overflow-hidden">
       <Sidebar open={open} setOpen={setOpen}>
-        <SidebarBody className="justify-between gap-10 bg-slate-50 dark:bg-slate-900">
-          <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
-            {open ? <Logo /> : <LogoIcon />}
-            
-            <div className="mt-8 flex flex-col gap-2">
-                {/* New Chat Button using standard SidebarLink style/behavior manually */}
-                <button
-                    onClick={handleNewChat}
-                    className="flex items-center justify-start gap-2 group/sidebar py-2 w-full text-left transition-all rounded-md px-2 hover:bg-slate-200 dark:hover:bg-slate-800"
-                >
-                     <IconPlus className="h-5 w-5 flex-shrink-0 text-slate-700 dark:text-slate-200" />
-                     {open && (
-                        <motion.span
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="text-sm font-medium text-slate-700 dark:text-slate-200 whitespace-pre"
-                        >
-                            New Chat
-                        </motion.span>
-                     )}
-                </button>
-
-                {/* Divider/Label */}
-                {open && chats.length > 0 && (
-                    <div className="px-2 pt-4 pb-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                        Recent
-                    </div>
-                )}
-                
-                {chats.map((chat) => (
-                    <ChatMetadataItem 
-                        key={chat.id}
-                        chat={chat}
-                        isSelected={selectedChatId === chat.id}
-                        onClick={() => setSelectedChatId(chat.id)}
-                    />
-                ))}
+        <SidebarBody className="bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800">
+          <div className="flex flex-col flex-1">
+            <div className="flex items-center gap-2 px-2 py-4">
+              <div className="h-8 w-8 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold">P</div>
+              {open && <span className="font-bold text-xl tracking-tight dark:text-white">Prizm</span>}
             </div>
-          </div>
-          
-          <div>
-            <SidebarLink
-              link={{
-                label: "Profile",
-                href: "#",
-                icon: (
-                  <IconUserBolt className="h-5 w-5 shrink-0 text-slate-700 dark:text-slate-200" />
-                ),
-              }}
-            />
-            <SidebarLink
-              link={{
-                label: "Settings",
-                href: "#",
-                icon: (
-                  <IconSettings className="h-5 w-5 shrink-0 text-slate-700 dark:text-slate-200" />
-                ),
-              }}
-            />
+            
+            <button 
+              onClick={() => setSelectedChatId(null)} 
+              className="mt-4 flex items-center justify-center gap-2 p-3 rounded-2xl bg-slate-900 dark:bg-blue-600 text-white hover:opacity-90 transition-all mx-2"
+            >
+              <IconPlus size={18} />
+              {open && <span className="font-semibold text-sm">New Debate</span>}
+            </button>
+
+            <div className="mt-6 space-y-1 px-2 overflow-y-auto no-scrollbar">
+              {chats.map(chat => (
+                <button
+                  key={chat.id}
+                  onClick={() => setSelectedChatId(chat.id)}
+                  className={cn(
+                    "w-full text-left p-3 rounded-xl transition-all flex items-center gap-3",
+                    selectedChatId === chat.id ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600" : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  )}
+                >
+                  <IconMessage size={16} />
+                  {open && <span className="text-sm font-medium truncate">{chat.title}</span>}
+                </button>
+              ))}
+            </div>
           </div>
         </SidebarBody>
       </Sidebar>
-      
-      {/* Dashboard / Chat Area */}
-      <ChatInterface 
-         selectedChatId={selectedChatId}
-         messages={messages}
-         input={input}
-         setInput={setInput}
-         handleSendMessage={handleSendMessage}
-         handleKeyDown={handleKeyDown}
-         inputRef={inputRef}
-         messagesEndRef={messagesEndRef}
-      />
+
+      <main className="flex-1 flex flex-col relative bg-white dark:bg-slate-950">
+        {selectedChatId ? (
+          <div className="flex-1 overflow-y-auto p-4 md:p-10 no-scrollbar">
+            <div className="max-w-5xl mx-auto">
+              {messages[selectedChatId]?.filter(Boolean).map((msg) => (
+                <AgentMessage key={msg.id} msg={msg} />
+              ))}
+              <div ref={messagesEndRef} className="h-20" />
+            </div>
+          </div>
+        ) : (
+          <NewChatPlaceholder onStart={handleStartAnalysis} />
+        )}
+
+        {selectedChatId && (
+          <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
+            <div className="max-w-3xl mx-auto flex gap-4">
+              <input 
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask for deeper extraction or challenge the synthesizer..."
+                className="flex-1 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+              <button className="h-14 w-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 hover:scale-105 transition-transform">
+                <IconSend size={20} />
+              </button>
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
 
-// Separated component for the Chat Area to keep the main file clean and match the "Dashboard" structure
-const ChatInterface = ({
-    selectedChatId,
-    messages,
-    input,
-    setInput,
-    handleSendMessage,
-    handleKeyDown,
-    inputRef,
-    messagesEndRef
-}: {
-    selectedChatId: string | null;
-    messages: Message[];
-    input: string;
-    setInput: (val: string) => void;
-    handleSendMessage: (e?: React.FormEvent) => void;
-    handleKeyDown: (e: React.KeyboardEvent) => void;
-    inputRef: React.RefObject<HTMLTextAreaElement | null>;
-    messagesEndRef: React.RefObject<HTMLDivElement | null>;
-}) => {
-    return (
-        <div className="flex flex-1">
-            <div className="flex h-full w-full flex-1 flex-col rounded-tl-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 relative overflow-hidden">
-                
-                {/* Chat Header for mobile mainly, or context */}
-                {selectedChatId && (
-                    <div className="absolute top-0 w-full z-10 px-6 py-4 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800">
-                        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                           Chat
-                        </h2>
-                    </div>
-                )}
+// --- Placeholder UI ---
+const NewChatPlaceholder = ({ onStart }: { onStart: (t: string, f?: File) => void }) => {
+  const [text, setText] = useState('');
+  const [file, setFile] = useState<File | null>(null);
 
-                {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-10 scroll-smooth no-scrollbar">
-                    {!selectedChatId ? (
-                         <div className="h-full flex flex-col items-center justify-center text-center space-y-8 animate-in fade-in duration-500">
-                            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-900">
-                                How can I help you today?
-                            </h1>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl mt-8">
-                                {['Explain quantum computing', 'Write a python script', 'Debug React code', 'Creative writing'].map((suggestion, i) => (
-                                    <button 
-                                        key={i}
-                                        onClick={() => setInput(suggestion)}
-                                        className="border border-slate-200 dark:border-slate-800 p-5 rounded-2xl text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all duration-200 text-sm text-slate-600 dark:text-slate-300 shadow-sm hover:shadow-md group bg-white/50 dark:bg-slate-900/50"
-                                    >
-                                        <span className="group-hover:text-blue-600 dark:group-hover:text-blue-400 font-medium">
-                                            {suggestion}
-                                        </span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="w-full max-w-3xl mx-auto space-y-6 pt-10">
-                            {messages.map((message) => (
-                                <div 
-                                    key={message.id} 
-                                    className={cn(
-                                        "flex gap-4",
-                                        message.role === 'user' ? "flex-row-reverse" : "flex-row"
-                                    )}
-                                >
-                                    <div className={cn(
-                                        "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1",
-                                        message.role === 'assistant' ? "bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700" : "bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-md"
-                                    )}>
-                                        {message.role === 'assistant' ? <IconRobot className="w-5 h-5 text-slate-600 dark:text-slate-300" /> : <IconUser className="w-5 h-5 text-white" />}
-                                    </div>
-                                    <div className={cn(
-                                        "flex flex-col max-w-[80%]",
-                                        message.role === 'user' ? "items-end" : "items-start"
-                                    )}>
-                                        <div className="font-medium text-xs text-slate-400 mb-1 ml-1">
-                                            {message.role === 'assistant' ? 'Aether' : 'You'}
-                                        </div>
-                                        <div className={cn(
-                                            "text-sm/6 md:text-base/7 px-4 py-2.5 rounded-2xl shadow-sm",
-                                            message.role === 'user' 
-                                                ? "bg-gradient-to-r from-blue-600 to-indigo-900 text-white rounded-tr-md" 
-                                                : "bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-md border border-slate-200 dark:border-slate-700"
-                                        )}>
-                                            {message.content}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                            <div ref={messagesEndRef} />
-                        </div>
-                    )}
-                </div>
-
-                {/* Input Area */}
-                <div className="p-4 md:p-6 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800">
-                    <div className="max-w-3xl mx-auto relative">
-                        <form 
-                            onSubmit={handleSendMessage}
-                            className="relative flex items-end w-full p-2 bg-slate-50 dark:bg-slate-900 rounded-xl focus-within:ring-2 focus-within:ring-blue-500/20 transition-all border border-transparent focus-within:border-blue-500/50"
-                        >
-                            <textarea
-                                ref={inputRef}
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyDown={handleKeyDown}
-                                placeholder="Message Aether..."
-                                rows={1}
-                                className="flex-1 bg-transparent border-none focus:ring-0 text-sm md:text-base resize-none max-h-[200px] py-3 px-3 no-scrollbar outline-none text-slate-800 dark:text-slate-200 placeholder:text-slate-400"
-                                style={{ minHeight: '48px' }}
-                            />
-                            <button 
-                                type="submit"
-                                disabled={!input.trim()}
-                                className={cn(
-                                    "p-2 rounded-lg transition-all duration-200 mb-1 mr-1",
-                                    input.trim() 
-                                        ? "bg-gradient-to-r from-blue-600 to-indigo-900 text-white hover:opacity-90 shadow-sm" 
-                                        : "bg-transparent text-slate-400 cursor-not-allowed hover:bg-slate-200/50 dark:hover:bg-slate-800/50" 
-                                )}
-                            >
-                                <IconSend className="w-5 h-5" />
-                            </button>
-                        </form>
-                        <div className="text-center mt-3">
-                            <p className="text-[10px] md:text-xs text-slate-400 dark:text-slate-500">
-                                AI can make mistakes. Please verify important information.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center p-6">
+      <div className="max-w-2xl w-full text-center space-y-8">
+        <div className="space-y-2">
+          <h1 className="text-5xl font-black tracking-tighter dark:text-white">
+            Prizm <span className="text-blue-600">Deliberation</span>
+          </h1>
+          <p className="text-slate-500 text-lg">Structured multi-agent adversarial reporting.</p>
         </div>
-    );
+
+        <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-8 shadow-xl">
+          <FileUpload onFileSelect={(f) => setFile(f)} selectedFile={file} />
+          
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="What should Prizm analyze? (e.g. 'Assess the operational risks in this merger')"
+            className="w-full mt-6 p-5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 min-h-[140px] focus:ring-2 focus:ring-blue-500 outline-none resize-none shadow-sm"
+          />
+
+          <button
+            onClick={() => onStart(text, file || undefined)}
+            disabled={!text.trim() && !file}
+            className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-30"
+          >
+            <IconBrain size={20} /> Start Analysis
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
