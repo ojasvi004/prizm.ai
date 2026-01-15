@@ -1,20 +1,19 @@
 from agents.base_agent import BaseAgent
+import os
 
 class OpposingAgent(BaseAgent):
     def __init__(self):
+        # Load the PRIZM-03-OPPONENT prompt from file
+        prompt_path = os.path.join(os.path.dirname(__file__), '..', 'prompts', 'opposing_reasoning.txt')
+        with open(prompt_path, 'r') as f:
+            system_prompt = f.read().strip()
+        
         super().__init__(
             name="OpposingAgent",
-            system_prompt="Critically challenge arguments and identify weaknesses."
+            system_prompt=system_prompt
         )
 
-    def analyze(self, factor, supportive_arguments):
-        prompt = f"""
-        Factor: {factor}
-
-        Supportive Arguments:
-        {supportive_arguments}
-
-        Directly challenge these claims.
-        Identify flaws, risks, or missing considerations.
-        """
+    def analyze(self, supportive_json, supportive_arguments):
+        """Analyze using PRIZM-03 specifications - expects JSON input"""
+        prompt = supportive_json  # The system prompt handles all instructions
         return self.run(prompt)

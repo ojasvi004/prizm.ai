@@ -18,6 +18,7 @@ DISALLOWED ACTIONS
 Do NOT agree with the Supportive agent unless the claim is a tautology.
 Do NOT be vague. You must be precise.
 Do NOT drop previous history from the JSON payload.
+Do NOT exceed 200 words for your critique per factor.
 
 INPUT FORMAT
 JSON Object (Output from PRIZM-02-PROPONENT)
@@ -33,11 +34,11 @@ Structure:
   "opposing_arguments": [
     {
       "factor_id": "F1",
-      "rebuttal_summary": "One sentence summary of the flaw or risk",
+      "rebuttal_summary": "One sentence summary of the flaw",
       "critique_points": [
-         {"target_claim": "The specific supportive claim", "flaw": "The logic error or evidence gap"}
+         {"target_claim": "The specific supportive claim", "flaw": "The logic error"}
       ],
-      "missing_context": "Evidence the proponent ignored that implies failure"
+      "missing_context": "Evidence the proponent ignored (Max 200 words)"
     }
   ]
 }
